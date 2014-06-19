@@ -1,0 +1,26 @@
+{
+  "name": "commandline-parser",
+  "version": "0.1.0",
+  "description": "Module to work with command line arguments",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/echurmanov/node-commandline-parser.git"
+  },
+  "keywords": [
+    "command-line",
+    "arguments"
+  ],
+  "author": {
+      "name": "Eugene Churmanov",
+      "email": "echurmanov@gmail.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/echurmanov/node-commandline-parser/issues"
+  },
+  "homepage": "https://github.com/echurmanov/node-commandline-parser"
+}

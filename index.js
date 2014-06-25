@@ -17,7 +17,7 @@ module.exports = {
  * @param {function} [callback]
  */
 function parse(argv, params, callback) {
-    var args = argv.slice(0);
+    var args = argv.slice(2);
 
 
     if (typeof params === 'function') {
@@ -26,34 +26,40 @@ function parse(argv, params, callback) {
     }
     setTimeout(function parseAsync(){
         if (typeof params === 'undefined' || params === null) {
-            var unUsed = [];
-            var result = {};
+            var operands = [];
+            var options = {};
             for (var i = 0; i < args.length; i++) {
-                if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
+                if (args[i] === '--') {
+                    operands = args.slice(i + 1);
+                    i = args.length;
+                } else if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
                     var paramName = args[i].substr(2);
                     var paramValue = true;
                     if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
                         paramValue =  args[i + 1];
                         i++;
                     }
-                    result[paramName] = paramValue;
+                    options[paramName] = paramValue;
                 } else if (args[i].length >= 2 && args[i].substr(0, 1) === '-') {
-                    var paramName = args[i].substr(1, 1);
-                    var paramValue = args[i].substr(2);
-                    if (!paramValue) {
+                    var paramsName = args[i].substr(1);
+                    if (paramsName.length == 1) {
                         paramValue = true;
                         if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
                             paramValue =  args[i + 1];
                             i++;
                         }
+                        options[paramsName] = paramValue;
+                    } else {
+                        for (var p = 0; p < paramsName.length; p++) {
+                            options[paramsName.substr(p, 1)] = true;
+                        }
                     }
-                    result[paramName] = paramValue;
                 } else {
-                    unUsed.push(args[i]);
+                    operands.push(args[i]);
                 }
             }
             if (callback) {
-                callback(null, result, unUsed)
+                callback(null, options, operands)
             }
         } else if (typeof params === 'object' && params instanceof Array){
 

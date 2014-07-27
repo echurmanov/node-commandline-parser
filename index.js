@@ -9,6 +9,148 @@ module.exports = {
     Section: Section
 };
 
+/**
+ * Parse result object
+ *
+ * @param {Object} options
+ * @param {Array} operands
+ * @constructor
+ */
+function Result(options, operands) {
+    this.operands = operands.slice(0);
+    this.options = {};
+    for (var i in options) {
+        if (options.hasOwnProperty(i)) {
+            this.options[i] = options[i];
+        }
+    }
+
+    /**
+     * Get operands number
+     * @returns number
+     */
+    this.getOperandsNumber = function() {
+        return this.operands.length;
+    };
+
+    /**
+     * Get operands list
+     * @returns {Array}
+     */
+    this.getOperands = function() {
+        return this.operands.slice(0);
+    };
+
+    /**
+     * Return option value or undefined if option not exists
+     *
+     * @param {String} option
+     * @returns {String}
+     */
+    this.getOption = function (option) {
+        return this.options[option];
+    };
+
+    /**
+     * Return all known options
+     *
+     * @returns {Object}
+     */
+    this.getOptions = function () {
+        var option = {};
+        for (var i in options) {
+            if (options.hasOwnProperty(i)) {
+                this.options[i] = options[i];
+            }
+        }
+        return option;
+    };
+
+    /**
+     * Return true if passed option exists and not equal FALSE
+     *
+     * @param {String} option
+     * @returns {boolean}
+     */
+    this.hasOption = function (option) {
+        return (this.options.hasOwnProperty(option) && this.options[option] !== false);
+    };
+
+}
+
+/**
+ * Param configuration
+ *
+ * @param {String} name
+ * @param {bool} needValue
+ * @constructor
+ */
+function Param(name, needValue) {
+    this.name = name;
+    this.value = needValue !== false;
+
+    /**
+     *
+     * @returns {String}
+     */
+    this.getName = function() {
+        return this.name;
+    };
+
+    /**
+     *
+     *
+     * @returns {boolean}
+     */
+    this.expectValue = function () {
+        return this.value;
+    };
+}
+
+/**
+ * Parse args with siple logic
+ *
+ * @param {Array} argv
+ * @returns {Result}
+ */
+function simpleParse(argv) {
+    var args = argv.slice(0);
+    var operands = [];
+    var options = {};
+    for (var i = 0; i < args.length; i++) {
+        if (args[i] === '--') {
+            operands = args.slice(i + 1);
+            i = args.length;
+        } else if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
+            var paramName = args[i].substr(2);
+            var paramValue = true;
+            if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
+                paramValue =  args[i + 1];
+                i++;
+            }
+            options[paramName] = paramValue;
+        } else if (args[i].length >= 2 && args[i].substr(0, 1) === '-') {
+            var paramsName = args[i].substr(1);
+            if (paramsName.length == 1) {
+                paramValue = true;
+                if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
+                    paramValue =  args[i + 1];
+                    i++;
+                }
+                options[paramsName] = paramValue;
+            } else {
+                for (var p = 0; p < paramsName.length; p++) {
+                    options[paramsName.substr(p, 1)] = true;
+                }
+            }
+        } else {
+            operands = args.slice(i);
+            i = args.length;
+        }
+    }
+
+    return new Result(options, operands);
+}
 
 /**
  * Parse passed params
@@ -24,90 +166,61 @@ function parse(argv, params, callback) {
         callback = params;
         params = null;
     }
-    setTimeout(function parseAsync(){
+    process.nextTick(function parseAsync(){
+        var result = new Result({}, []);
         if (typeof params === 'undefined' || params === null) {
-            var operands = [];
-            var options = {};
-            for (var i = 0; i < args.length; i++) {
-                if (args[i] === '--') {
-                    operands = args.slice(i + 1);
-                    i = args.length;
-                } else if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
-                    var paramName = args[i].substr(2);
-                    var paramValue = true;
-                    if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
-                        paramValue =  args[i + 1];
-                        i++;
-                    }
-                    options[paramName] = paramValue;
-                } else if (args[i].length >= 2 && args[i].substr(0, 1) === '-') {
-                    var paramsName = args[i].substr(1);
-                    if (paramsName.length == 1) {
-                        paramValue = true;
-                        if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
-                            paramValue =  args[i + 1];
-                            i++;
-                        }
-                        options[paramsName] = paramValue;
-                    } else {
-                        for (var p = 0; p < paramsName.length; p++) {
-                            options[paramsName.substr(p, 1)] = true;
-                        }
-                    }
-                } else {
-                    operands.push(args[i]);
-                }
-            }
+            result = simpleParse(args);
             if (callback) {
-                callback(null, options, operands)
+                callback(null, result)
             }
-        } else if (typeof params === 'object' && params instanceof Array){
+        } else if (typeof params === 'object' && params instanceof Array && params.length > 0){
 
-            if (params.length === 0) {
-                callback(null, null, args);
+            if (params[0] instanceof Section) {
+
             } else {
-                if (params[0] instanceof Section) {
-
-                } else {
-                    var result = {};
-                    var unUsed = [];
-                    for (var argumentIndex = 0; argumentIndex < args.length; argumentIndex++ ) {
-                        var paramName = '';
-                        var paramValue = false;
-                        if (args[argumentIndex].length >=3 && args[argumentIndex].substr(0, 2) === '--') {
-                            paramName = args[argumentIndex].substr(2);
-                        } else if (args[argumentIndex].length === 2 && args[argumentIndex].substr(0, 1) === '-') {
-                            paramName = args[argumentIndex].substr(1);
+                var options = {};
+                var operands = [];
+                for (var optionIndex = 0; optionIndex < params.length; optionIndex++) {
+                    options[params[optionIndex].getName()] = false;
+                }
+                for (var i = 0; i < args.length; i++) {
+                    if (args[i] === '--') {
+                        operands = args.slice(i + 1);
+                        i = args.length;
+                    } else if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
+                        var paramName = args[i].substr(2);
+                        var paramValue = true;
+                        if (paramName.indexOf('=') !== -1) {
+                            paramValue = paramName.substr(paramName.indexOf('=') + 1);
+                            paramName = paramName.substr(0, paramName.indexOf('='));
                         }
-                        if (paramName) {
-                            for (var paramIndex = 0; paramIndex < params.length && paramValue === false; paramIndex++) {
-                                if (params[paramIndex].name == paramName) {
-                                    if (params[paramIndex].value) {
-                                        if (paramName.length == 1) {
-                                            paramValue = args[argumentIndex].substring(2);
-                                        }
-                                        if (!paramName && argumentIndex < args.length - 1) {
-                                            paramValue = args[argumentIndex + 1];
-                                            argumentIndex++;
-                                        }
-                                    }
-                                }
+                        
+                        options[paramName] = paramValue;
+                    } else if (args[i].length >= 2 && args[i].substr(0, 1) === '-') {
+                        var paramsName = args[i].substr(1);
+                        if (paramsName.length == 1) {
+                            paramValue = true;
+                            if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
+                                paramValue =  args[i + 1];
+                                i++;
+                            }
+                            options[paramsName] = paramValue;
+                        } else {
+                            for (var p = 0; p < paramsName.length; p++) {
+                                options[paramsName.substr(p, 1)] = true;
                             }
                         }
-                        if (paramValue) {
-                            result[paramName] = paramValue;
-                        } else {
-                            unUsed.push(args[argumentIndex]);
-                        }
-
+                    } else {
+                        operands = args.slice(i);
+                        i = args.length;
                     }
                 }
             }
             if (callback) {
-                callback(null, result, unUsed)
+                callback(null, result);
             }
         }
-    }, 0);
+    });
 }
 
 

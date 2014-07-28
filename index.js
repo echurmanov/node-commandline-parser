@@ -2,6 +2,9 @@
  * Created by eugene on 19.06.14.
  */
 
+var Result = require('./lib/Result.js');
+var Option = require('./lib/Option.js');
+
 console.log(process.argv);
 
 module.exports = {
@@ -10,110 +13,15 @@ module.exports = {
 };
 
 /**
- * Parse result object
- *
- * @param {Object} options
- * @param {Array} operands
- * @constructor
- */
-function Result(options, operands) {
-    this.operands = operands.slice(0);
-    this.options = {};
-    for (var i in options) {
-        if (options.hasOwnProperty(i)) {
-            this.options[i] = options[i];
-        }
-    }
-
-    /**
-     * Get operands number
-     * @returns number
-     */
-    this.getOperandsNumber = function() {
-        return this.operands.length;
-    };
-
-    /**
-     * Get operands list
-     * @returns {Array}
-     */
-    this.getOperands = function() {
-        return this.operands.slice(0);
-    };
-
-    /**
-     * Return option value or undefined if option not exists
-     *
-     * @param {String} option
-     * @returns {String}
-     */
-    this.getOption = function (option) {
-        return this.options[option];
-    };
-
-    /**
-     * Return all known options
-     *
-     * @returns {Object}
-     */
-    this.getOptions = function () {
-        var option = {};
-        for (var i in options) {
-            if (options.hasOwnProperty(i)) {
-                this.options[i] = options[i];
-            }
-        }
-        return option;
-    };
-
-    /**
-     * Return true if passed option exists and not equal FALSE
-     *
-     * @param {String} option
-     * @returns {boolean}
-     */
-    this.hasOption = function (option) {
-        return (this.options.hasOwnProperty(option) && this.options[option] !== false);
-    };
-
-}
-
-/**
- * Param configuration
- *
- * @param {String} name
- * @param {bool} needValue
- * @constructor
- */
-function Param(name, needValue) {
-    this.name = name;
-    this.value = needValue !== false;
-
-    /**
-     *
-     * @returns {String}
-     */
-    this.getName = function() {
-        return this.name;
-    };
-
-    /**
-     *
-     *
-     * @returns {boolean}
-     */
-    this.expectValue = function () {
-        return this.value;
-    };
-}
-
-/**
- * Parse args with siple logic
+ * Parse args with simple logic
  *
  * @param {Array} argv
  * @returns {Result}
  */
-function simpleParse(argv) {
+function simpleParse(argv, combineShort) {
+    if (typeof combineShort === 'undefined') {
+        combineShort = true;
+    }
     var args = argv.slice(0);
     var operands = [];
     var options = {};
@@ -124,9 +32,14 @@ function simpleParse(argv) {
         } else if (args[i].length >=3 && args[i].substr(0, 2) === '--') {
             var paramName = args[i].substr(2);
             var paramValue = true;
-            if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
-                paramValue =  args[i + 1];
-                i++;
+            if (paramName.indexOf('=') !== -1) {
+                paramValue = paramName.substr(paramName.indexOf('=') + 1);
+                paramName = paramName.substr(0, paramName.indexOf('='));
+            } else {
+                if (i < args.length - 1 && args[i + 1].substr(0, 1) !== '-') {
+                    paramValue = args[i + 1];
+                    i++;
+                }
             }
             options[paramName] = paramValue;
         } else if (args[i].length >= 2 && args[i].substr(0, 1) === '-') {
@@ -138,10 +51,12 @@ function simpleParse(argv) {
                     i++;
                 }
                 options[paramsName] = paramValue;
-            } else {
+            } else if (combineShort) {
                 for (var p = 0; p < paramsName.length; p++) {
                     options[paramsName.substr(p, 1)] = true;
                 }
+            } else {
+                options[paramsName.substr(0, 1)] = paramsName.substr(1);
             }
         } else {
             operands = args.slice(i);
